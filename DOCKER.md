@@ -1,5 +1,59 @@
 # Docker Deployment Guide
 
+## Existing SCS server (mlp2069 image)
+
+The image is published to `ghcr.io/mlp2069/stremio-community-subtitles:latest`
+on pushes to `main`, with an additional `sha-<short-commit>` tag for pinning or
+rollback. It supports Linux amd64 and arm64. Runtime settings and secrets stay
+in your server's Compose environment; they are not baked into the image.
+
+For the existing SQLite server, replace the `scs` service with the following
+in your current Compose file. Keep your existing `default-logging` anchor:
+
+```yaml
+  scs:
+    image: ghcr.io/mlp2069/stremio-community-subtitles:latest
+    container_name: scs
+    restart: unless-stopped
+    entrypoint: ["/app/data/entrypoint.sh"]
+    command: ["hypercorn", "run:app", "--bind", "0.0.0.0:4949", "--workers", "4", "--backlog", "256"]
+    ports:
+      - "127.0.0.1:4950:4949"
+    environment:
+      - TZ=${TZ}
+      - SECRET_KEY=${SECRET_KEY}
+      - FLASK_ENV=production
+      - DATABASE_URL=sqlite:////app/data/local.db
+      - DISABLE_EMAIL_VERIFICATION=true
+      - OPENSUBTITLES_API_KEY=${OPENSUBTITLES_API_KEY}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - MAL_CLIENT_ID=${MAL_CLIENT_ID_SCS}
+      - PREFERRED_URL_SCHEME=https
+      - MAX_UPLOAD_SIZE_MB=15
+    volumes:
+      - /data/scs/data:/app/data
+      - /data/scs/subtitles:/app/subtitles
+      - /data/scs/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4949/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+```
+
+After the image build succeeds, run these from your server's Compose directory:
+
+```bash
+docker compose pull scs
+docker compose up -d --no-deps scs
+docker compose ps scs
+```
+
+The mounted `/data/scs/data/entrypoint.sh` and existing SQLite database remain
+in use. Enable TheSubtitleDB in Account Settings after updating.
+
 ## Quick Start (Pre-built Image)
 
 The fastest way — no need to clone the repo or build anything:
@@ -7,8 +61,8 @@ The fastest way — no need to clone the repo or build anything:
 1. **Create a directory and download config:**
    ```bash
    mkdir stremio-community-subtitles && cd stremio-community-subtitles
-   curl -O https://raw.githubusercontent.com/skoruppa/stremio-community-subtitles/main/.env.docker.example
-   curl -O https://raw.githubusercontent.com/skoruppa/stremio-community-subtitles/main/docker-compose.yml
+   curl -O https://raw.githubusercontent.com/mlp2069/stremio-community-subtitles/main/.env.docker.example
+   curl -O https://raw.githubusercontent.com/mlp2069/stremio-community-subtitles/main/docker-compose.yml
    mv .env.docker.example .env
    ```
 
@@ -36,7 +90,7 @@ docker compose up -d
 
 1. **Clone with submodules:**
    ```bash
-   git clone --recurse-submodules https://github.com/skoruppa/stremio-community-subtitles.git
+   git clone --recurse-submodules https://github.com/mlp2069/stremio-community-subtitles.git
    cd stremio-community-subtitles
    ```
 
