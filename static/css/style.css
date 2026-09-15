@@ -313,6 +313,16 @@ body {
     color: #2f3945 !important;
 }
 
+/* .badge defaults to white text, but cyan and amber are light backgrounds:
+   white on them is 1.96:1 and 1.63:1. Bootstrap's own .text-bg-info and
+   .text-bg-warning pair these with black for that reason (10.7:1 and 12.9:1).
+   Applies in both themes -- the badge colours don't vary by theme. An explicit
+   .text-white on a badge still wins, since that utility is !important. */
+.badge.bg-info,
+.badge.bg-warning {
+    color: #000;
+}
+
 .list-group-item.bg-info {
     transition: filter 0.3s ease-in-out;
     filter: brightness(1);
