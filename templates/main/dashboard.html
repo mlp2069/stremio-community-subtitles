@@ -20,6 +20,10 @@
         margin-left: -4px;
     }
 
+    .activity-main[aria-disabled="true"] {
+        cursor: default;
+    }
+
     .activity-media {
         width: 96px;
         min-width: 96px;
@@ -229,8 +233,9 @@
                 <div class="list-group list-group-flush">
                     {% for activity in activities %}
                     {% set is_aiosports = activity.content_id and activity.content_id.startswith('nuvio_sport_') %}
+                    {% set is_aiosports_channel = is_aiosports and '_ts_ch_' in activity.content_id %}
                     <div class="list-group-item activity-item">
-                        <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="activity-main text-decoration-none text-body">
+                        <a {% if not is_aiosports %}href="{{ url_for('content.content_detail', activity_id=activity.id) }}"{% else %}aria-disabled="true"{% endif %} class="activity-main text-decoration-none text-body">
                             <div class="activity-media">
                                 <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
                                      data-content-id="{{ activity.content_id }}"
@@ -247,6 +252,10 @@
                                 <h5 class="activity-title">
                                     {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
                                         {{ metadata_map[activity.id].display_title }}
+                                    {% elif is_aiosports_channel %}
+                                        {{ activity.content_id|replace('nuvio_sport_ts_ch_', '')|replace('-', ' ')|replace('_', ' ')|title }}
+                                    {% elif is_aiosports %}
+                                        {{ activity.content_id|replace('nuvio_sport_', '')|replace('-', ' ')|replace('_', ' ')|title }}
                                     {% else %}
                                         {{ activity.content_id }}
                                     {% endif %}
@@ -262,12 +271,12 @@
 
                         <div class="activity-actions">
                             <div class="activity-status-stack">
-                                <span class="badge {% if is_aiosports %}badge-activity-channel{% elif activity.content_type == 'movie' %}badge-activity-movie{% elif activity.content_type == 'series' %}badge-activity-series{% else %}badge-activity-other{% endif %}">
-                                    {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
-                                </span>
                                 <span class="badge badge-activity-date activity-date-badge"
                                       data-utc="{{ activity.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
                                     {{ activity.timestamp.strftime('%-m/%-d/%y %-I:%M %p') }}
+                                </span>
+                                <span class="badge {% if is_aiosports %}badge-activity-channel{% elif activity.content_type == 'movie' %}badge-activity-movie{% elif activity.content_type == 'series' %}badge-activity-series{% else %}badge-activity-other{% endif %}">
+                                    {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
                                 </span>
                             </div>
 
