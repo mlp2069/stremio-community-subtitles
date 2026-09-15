@@ -4,14 +4,21 @@
 
 {% block content %}
 <style>
-    .activity-item { position: relative; }
-    .activity-link {
+    .activity-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 110px;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .activity-main {
         display: grid;
         grid-template-columns: 72px minmax(0, 1fr);
         gap: 12px;
         align-items: center;
-        padding-right: 3.25rem;
+        min-width: 0;
     }
+
     .activity-media {
         width: 72px;
         min-width: 72px;
@@ -19,28 +26,36 @@
         align-items: center;
         justify-content: center;
     }
-    .activity-content { min-width: 0; }
+
+    .activity-content {
+        min-width: 0;
+    }
+
     .activity-poster {
         width: 52px;
         height: 74px;
         flex: 0 0 auto;
         border-radius: 0.375rem;
     }
+
     .activity-poster .poster-image {
         width: 100%;
         height: 100%;
         max-width: 100%;
         object-fit: cover;
     }
+
     .activity-poster-landscape {
         width: 68px;
         height: 38px;
         aspect-ratio: 16 / 9;
     }
+
     .activity-title {
-        line-height: 1.25;
-        margin-bottom: 0.2rem;
+        line-height: 1.24;
+        margin-bottom: 0.25rem;
     }
+
     .activity-meta {
         display: flex;
         flex-wrap: wrap;
@@ -48,6 +63,7 @@
         align-items: center;
         margin-top: 0.4rem;
     }
+
     .activity-id {
         color: var(--bs-body-color);
         font-weight: 600;
@@ -55,51 +71,99 @@
         min-width: 0;
         overflow-wrap: anywhere;
     }
+
+    .activity-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+
+    .activity-status-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+        width: 100%;
+    }
+
+    .activity-status-stack .badge {
+        display: inline-block;
+        max-width: 100%;
+        white-space: nowrap;
+        font-weight: 700;
+        border-radius: 0.45rem;
+        padding: 0.4rem 0.55rem;
+        font-size: 0.75rem;
+    }
+
+    .badge-activity-type {
+        background: #fd7e14;
+        color: #fff;
+    }
+
+    .badge-activity-date {
+        background: #198754;
+        color: #fff;
+    }
+
     .activity-delete {
-        position: absolute;
-        top: 0.65rem;
-        right: 0.65rem;
-        z-index: 3;
         margin: 0;
     }
+
     .activity-delete .btn {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 0;
     }
+
     @media (max-width: 575.98px) {
-        .activity-link {
-            grid-template-columns: 62px minmax(0, 1fr);
+        .activity-item {
+            grid-template-columns: minmax(0, 1fr) 100px;
+            gap: 8px;
+        }
+
+        .activity-main {
+            grid-template-columns: 58px minmax(0, 1fr);
             gap: 8px;
             align-items: start;
-            padding-right: 2.8rem;
         }
+
         .activity-media {
-            width: 62px;
-            min-width: 62px;
+            width: 58px;
+            min-width: 58px;
             padding-top: 0.15rem;
         }
+
         .activity-poster {
             width: 46px;
             height: 66px;
         }
+
         .activity-poster-landscape {
             width: 58px;
             height: 33px;
         }
+
         .activity-title {
             font-size: 1rem;
-            line-height: 1.25;
+            line-height: 1.22;
         }
-        .activity-content small { font-size: 0.86rem; }
+
         .activity-meta {
             gap: 0.3rem 0.35rem;
             margin-top: 0.35rem;
         }
-        .activity-meta .badge { font-size: 0.78rem; }
+
+        .activity-meta .badge {
+            font-size: 0.76rem;
+        }
+
         .activity-id {
             flex-basis: 100%;
             display: block;
@@ -109,16 +173,19 @@
             text-overflow: ellipsis;
             font-size: 0.8rem;
         }
-        .activity-delete {
-            top: 0.55rem;
-            right: 0.55rem;
+
+        .activity-status-stack .badge {
+            font-size: 0.64rem;
+            padding: 0.34rem 0.42rem;
         }
+
         .activity-delete .btn {
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
         }
     }
 </style>
+
 <div class="row mb-4">
     <div class="col">
         <h1 class="mb-3">{{ _('Your Dashboard') }}</h1>
@@ -146,47 +213,55 @@
                     {% for activity in activities %}
                     {% set is_aiosports = activity.content_id and activity.content_id.startswith('nuvio_sport_') %}
                     <div class="list-group-item activity-item">
-                        <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="activity-link text-decoration-none text-body">
+                        <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="activity-main text-decoration-none text-body">
                             <div class="activity-media">
                                 <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
-                                         data-content-id="{{ activity.content_id }}"
-                                         data-aiosports="{{ '1' if is_aiosports else '0' }}"
-                                         data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
-                                        <img class="poster-image img-thumbnail" alt="">
-                                        <div class="poster-fallback">
-                                            <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
-                                        </div>
+                                     data-content-id="{{ activity.content_id }}"
+                                     data-aiosports="{{ '1' if is_aiosports else '0' }}"
+                                     data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
+                                    <img class="poster-image img-thumbnail" alt="">
+                                    <div class="poster-fallback">
+                                        <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="activity-content">
-                                    <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
-                                        <h5 class="mb-1 me-2 activity-title">
-                                            {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
-                                                {{ metadata_map[activity.id].display_title }}
-                                            {% else %}
-                                                {{ activity.content_id }}
-                                            {% endif %}
-                                        </h5>
-                                        <small class="text-muted text-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
-                                    </div>
-                                    <div class="activity-meta">
-                                        <span class="badge {% if activity.content_type == 'movie' %}bg-info{% else %}bg-warning{% endif %}">
-                                            {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
-                                        </span>
-                                        {% if activity.video_hash %}
-                                        <span class="badge bg-secondary">Hash: {{ activity.video_hash }}</span>
-                                        {% endif %}
-                                        <span class="activity-id" title="{{ activity.content_id }}">ID: {{ activity.content_id }}</span>
-                                    </div>
+                                <h5 class="activity-title">
+                                    {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
+                                        {{ metadata_map[activity.id].display_title }}
+                                    {% else %}
+                                        {{ activity.content_id }}
+                                    {% endif %}
+                                </h5>
+                                <div class="activity-meta">
+                                    {% if activity.video_hash %}
+                                    <span class="badge bg-secondary">Hash: {{ activity.video_hash }}</span>
+                                    {% endif %}
+                                    <span class="activity-id" title="{{ activity.content_id }}">ID: {{ activity.content_id }}</span>
+                                </div>
                             </div>
                         </a>
-                        <form class="activity-delete" action="{{ url_for('main.delete_activity', activity_id=activity.id) }}" method="POST" onsubmit="return confirm('{{ _('Are you sure you want to delete this activity record?') }}');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete Activity') }}">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </form>
+
+                        <div class="activity-actions">
+                            <div class="activity-status-stack">
+                                <span class="badge badge-activity-type">
+                                    {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
+                                </span>
+                                <span class="badge badge-activity-date activity-date-badge"
+                                      data-utc="{{ activity.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+                                      title="Eastern Time">
+                                    {{ activity.timestamp.strftime('%-m/%-d/%y %-I:%M %p') }} (ET)
+                                </span>
+                            </div>
+
+                            <form class="activity-delete" action="{{ url_for('main.delete_activity', activity_id=activity.id) }}" method="POST" onsubmit="return confirm('{{ _('Are you sure you want to delete this activity record?') }}');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete Activity') }}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -233,9 +308,37 @@
         </div>
     </div>
 </div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const aiosportsBase = `${window.location.protocol}//${window.location.hostname}:7000`;
+
+        function formatEasternTime(utcString) {
+            const date = new Date(utcString);
+            if (Number.isNaN(date.getTime())) return null;
+
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/New_York',
+                month: 'numeric',
+                day: 'numeric',
+                year: '2-digit',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            }).formatToParts(date);
+
+            const getPart = (type) => {
+                const part = parts.find((item) => item.type === type);
+                return part ? part.value : '';
+            };
+
+            return `${getPart('month')}/${getPart('day')}/${getPart('year')} ${getPart('hour')}:${getPart('minute')} ${getPart('dayPeriod')} (ET)`;
+        }
+
+        document.querySelectorAll('.activity-date-badge').forEach(function(badge) {
+            const formatted = formatEasternTime(badge.dataset.utc);
+            if (formatted) badge.textContent = formatted;
+        });
 
         function showPoster(wrapper, posterUrl) {
             const img = wrapper.querySelector('.poster-image');
