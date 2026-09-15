@@ -13,15 +13,15 @@
 
     .activity-main {
         display: grid;
-        grid-template-columns: 72px minmax(0, 1fr);
+        grid-template-columns: 96px minmax(0, 1fr);
         gap: 12px;
         align-items: center;
         min-width: 0;
     }
 
     .activity-media {
-        width: 72px;
-        min-width: 72px;
+        width: 96px;
+        min-width: 96px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -32,8 +32,8 @@
     }
 
     .activity-poster {
-        width: 52px;
-        height: 74px;
+        width: 57px;
+        height: 80px;
         flex: 0 0 auto;
         border-radius: 0.375rem;
     }
@@ -46,8 +46,8 @@
     }
 
     .activity-poster-landscape {
-        width: 68px;
-        height: 38px;
+        width: 84px;
+        height: 47px;
         aspect-ratio: 16 / 9;
     }
 
@@ -129,25 +129,25 @@
         }
 
         .activity-main {
-            grid-template-columns: 58px minmax(0, 1fr);
+            grid-template-columns: 84px minmax(0, 1fr);
             gap: 8px;
-            align-items: start;
+            align-items: center;
         }
 
         .activity-media {
-            width: 58px;
-            min-width: 58px;
-            padding-top: 0.15rem;
+            width: 84px;
+            min-width: 84px;
+            padding-top: 0;
         }
 
         .activity-poster {
-            width: 46px;
-            height: 66px;
+            width: 57px;
+            height: 80px;
         }
 
         .activity-poster-landscape {
-            width: 58px;
-            height: 33px;
+            width: 78px;
+            height: 44px;
         }
 
         .activity-title {
@@ -315,6 +315,19 @@
         function formatBrowserTime(utcString) {
             const date = new Date(utcString);
             if (Number.isNaN(date.getTime())) return null;
+
+            const now = new Date();
+            const isToday = date.getFullYear() === now.getFullYear()
+                && date.getMonth() === now.getMonth()
+                && date.getDate() === now.getDate();
+
+            if (isToday) {
+                return new Intl.DateTimeFormat('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                }).format(date);
+            }
 
             const parts = new Intl.DateTimeFormat('en-US', {
                 month: 'numeric',
