@@ -382,3 +382,31 @@ body {
     max-width: 100% !important;
     align-self: flex-start !important;
 }
+
+/* Keep content-detail pages compact and usable on phones. */
+@media (max-width: 767.98px) {
+    .row.mb-4:has(.poster-wrapper-card) .poster-wrapper-card {
+        height: 180px;
+        min-height: 180px;
+    }
+
+    .row.mb-4:has(.poster-wrapper-card) .poster-fallback-card i {
+        font-size: 2.5rem;
+    }
+
+    .row.mb-4:has(.poster-wrapper-card) .card-header h2 {
+        font-size: 1.2rem;
+        line-height: 1.25;
+    }
+
+    .row.mb-4:has(.poster-wrapper-card) .card-header.d-flex {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .row.mb-4:has(.poster-wrapper-card) .card-header .text-end.d-flex {
+        width: 100%;
+        justify-content: flex-start !important;
+        flex-wrap: wrap;
+    }
+}
