@@ -373,3 +373,12 @@ body {
         transition: none;
     }
 }
+
+/* Activity ID pill should hug its content */
+.activity-id {
+    flex: 0 1 auto !important;
+    flex-basis: auto !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    align-self: flex-start !important;
+}
