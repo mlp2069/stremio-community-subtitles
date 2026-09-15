@@ -81,7 +81,6 @@
     }
 
     .activity-id {
-        color: var(--bs-body-color);
         font-weight: 600;
         font-size: 0.9rem;
         min-width: 0;
@@ -196,13 +195,9 @@
             font-size: 0.76rem;
         }
 
+        /* Only font-size survives here: the pill's box, clipping and colours are
+           set with !important in base.html and style.css. */
         .activity-id {
-            flex-basis: 100%;
-            display: block;
-            max-width: 100%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             font-size: 0.8rem;
         }
 

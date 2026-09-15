@@ -660,9 +660,24 @@ async def unified_download(manifest_token: str, download_identifier: str):
                             current_app.logger.info(f"ASS requested but provider returned plain text, serving as VTT")
                         raw_bytes = await r.read()
                         # Detect encoding instead of assuming UTF-8
-                        from ..lib.subtitles import detect_encoding
+                        from ..lib.subtitles import detect_encoding, convert_to_vtt
                         encoding = detect_encoding(raw_bytes)
-                        vtt_content = raw_bytes.decode(encoding, errors='replace')
+                        decoded = raw_bytes.decode(encoding, errors='replace')
+                        if decoded.strip().upper().startswith('WEBVTT'):
+                            vtt_content = decoded
+                        else:
+                            # A provider whose get_download_url() points straight at
+                            # SubRip (TheSubtitleDB) lands here. Without converting,
+                            # the body goes out as text/plain at a .vtt URL and the
+                            # player shows nothing. pysubs2 autodetects the format;
+                            # the extension is only a fallback hint.
+                            try:
+                                vtt_content = await convert_to_vtt(raw_bytes, '.srt', encoding=encoding)
+                            except Exception as e:
+                                current_app.logger.error(
+                                    f"Failed to convert plain-text subtitle to VTT "
+                                    f"(url={provider_subtitle_url}): {e}")
+                                vtt_content = decoded
         except asyncio.TimeoutError:
             current_app.logger.warning(f"Timeout fetching subtitle from {provider_subtitle_url}")
             message_key = 'provider_timeout'
