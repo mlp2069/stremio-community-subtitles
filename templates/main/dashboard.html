@@ -29,11 +29,37 @@
         object-fit: cover;
     }
 
+    .activity-item {
+        position: relative;
+    }
+
+    .activity-link {
+        display: block;
+        padding-right: 3.75rem;
+    }
+
+    .activity-delete {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 3;
+        margin: 0;
+    }
+
     @media (max-width: 575.98px) {
         .activity-poster-landscape {
             width: 112px;
             height: 63px;
             flex-basis: 112px;
+        }
+
+        .activity-link {
+            padding-right: 3.25rem;
+        }
+
+        .activity-delete {
+            top: 0.6rem;
+            right: 0.6rem;
         }
     }
 </style>
@@ -63,55 +89,52 @@
                 <div class="list-group list-group-flush">
                     {% for activity in activities %}
                     {% set is_aiosports = activity.content_id and activity.content_id.startswith('nuvio_sport_') %}
-                    <div class="list-group-item">
-                        <div class="d-flex align-items-center">
-                            <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="flex-grow-1 text-decoration-none text-body">
-                                <div class="d-flex align-items-center">
-
-                                    <div class="me-3 flex-shrink-0">
-                                        <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
-                                             data-content-id="{{ activity.content_id }}"
-                                             data-aiosports="{{ '1' if is_aiosports else '0' }}"
-                                             data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
-                                            <img class="poster-image img-thumbnail" alt="">
-                                            <div class="poster-fallback">
-                                                <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex-grow-1 min-w-0">
-                                        <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
-                                            <h5 class="mb-1 me-2 activity-title">
-                                                {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
-                                                    {{ metadata_map[activity.id].display_title }}
-                                                {% else %}
-                                                    {{ activity.content_id }}
-                                                {% endif %}
-                                            </h5>
-                                            <small class="text-muted text-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <p class="mb-0 me-2">
-                                                <span class="badge {% if activity.content_type == 'movie' %}bg-info{% else %}bg-warning{% endif %}">
-                                                    {% if activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
-                                                </span>
-                                                {% if activity.video_hash %}
-                                                <span class="badge bg-secondary">Hash: {{ activity.video_hash }}</span>
-                                                {% endif %}
-                                                <span class="badge bg-dark">ID: {{ activity.content_id }}</span>
-                                            </p>
-                                            <form action="{{ url_for('main.delete_activity', activity_id=activity.id) }}" method="POST" onsubmit="return confirm('{{ _('Are you sure you want to delete this activity record?') }}');">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete Activity') }}">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </form>
+                    <div class="list-group-item activity-item">
+                        <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="activity-link text-decoration-none text-body">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 flex-shrink-0">
+                                    <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
+                                         data-content-id="{{ activity.content_id }}"
+                                         data-aiosports="{{ '1' if is_aiosports else '0' }}"
+                                         data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
+                                        <img class="poster-image img-thumbnail" alt="">
+                                        <div class="poster-fallback">
+                                            <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
                                         </div>
                                     </div>
                                 </div>
-                            </a>
-                        </div>
+
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
+                                        <h5 class="mb-1 me-2 activity-title">
+                                            {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
+                                                {{ metadata_map[activity.id].display_title }}
+                                            {% else %}
+                                                {{ activity.content_id }}
+                                            {% endif %}
+                                        </h5>
+                                        <small class="text-muted text-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="mb-0 me-2">
+                                            <span class="badge {% if activity.content_type == 'movie' %}bg-info{% else %}bg-warning{% endif %}">
+                                                {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
+                                            </span>
+                                            {% if activity.video_hash %}
+                                            <span class="badge bg-secondary">Hash: {{ activity.video_hash }}</span>
+                                            {% endif %}
+                                            <span class="badge bg-dark">ID: {{ activity.content_id }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        <form class="activity-delete" action="{{ url_for('main.delete_activity', activity_id=activity.id) }}" method="POST" onsubmit="return confirm('{{ _('Are you sure you want to delete this activity record?') }}');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Delete Activity') }}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
                     </div>
                     {% endfor %}
                 </div>
