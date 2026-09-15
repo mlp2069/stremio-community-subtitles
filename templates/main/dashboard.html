@@ -28,24 +28,23 @@
                 {% if activities %}
                 <div class="list-group list-group-flush">
                     {% for activity in activities %}
+                    {% set is_aiosports = activity.content_id and activity.content_id.startswith('nuvio_sport_') %}
                     <div class="list-group-item">
                         <div class="d-flex align-items-center">
                             <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="flex-grow-1 text-decoration-none text-body">
-                                <div class="d-flex">
+                                <div class="d-flex align-items-center">
 
-                                    <div class="me-3">
-                                        <div class="poster-wrapper"
-                                             data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}"
-                                             style="height: 80px; width: 57px;">
-                                            <img class="poster-image img-thumbnail"
-                                                 style="height: 80px; width: auto; max-width: fit-content;">
+                                    <div class="me-3 flex-shrink-0">
+                                        <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
+                                             data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
+                                            <img class="poster-image img-thumbnail" alt="">
                                             <div class="poster-fallback">
-                                                <i class="fa fa-film"></i>
+                                                <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div class="flex-grow-1">
+                                    <div class="flex-grow-1 min-w-0">
                                         <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
                                             <h5 class="mb-1 me-2">
                                                 {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
