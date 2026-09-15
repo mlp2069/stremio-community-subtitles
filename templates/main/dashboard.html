@@ -4,10 +4,34 @@
 
 {% block content %}
 <style>
+    .activity-item {
+        position: relative;
+    }
+
+    .activity-link {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 14px;
+        align-items: center;
+        padding-right: 3.75rem;
+    }
+
+    .activity-media {
+        width: 96px;
+        min-width: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .activity-content {
+        min-width: 0;
+    }
+
     .activity-poster {
         width: 57px;
         height: 80px;
-        flex: 0 0 57px;
+        flex: 0 0 auto;
         border-radius: 0.375rem;
     }
 
@@ -19,23 +43,23 @@
     }
 
     .activity-poster-landscape {
-        width: 128px;
-        height: 72px;
-        flex-basis: 128px;
+        width: 84px;
+        height: 47px;
         aspect-ratio: 16 / 9;
     }
 
-    .activity-poster-landscape .poster-image {
-        object-fit: cover;
+    .activity-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+        margin-top: 0.5rem;
     }
 
-    .activity-item {
-        position: relative;
-    }
-
-    .activity-link {
-        display: block;
-        padding-right: 3.75rem;
+    .activity-id {
+        color: var(--bs-body-color);
+        font-weight: 600;
+        overflow-wrap: anywhere;
     }
 
     .activity-delete {
@@ -47,14 +71,25 @@
     }
 
     @media (max-width: 575.98px) {
-        .activity-poster-landscape {
-            width: 112px;
-            height: 63px;
-            flex-basis: 112px;
+        .activity-link {
+            grid-template-columns: 88px minmax(0, 1fr);
+            gap: 12px;
+            padding-right: 3.25rem;
         }
 
-        .activity-link {
-            padding-right: 3.25rem;
+        .activity-media {
+            width: 88px;
+            min-width: 88px;
+        }
+
+        .activity-poster {
+            width: 52px;
+            height: 78px;
+        }
+
+        .activity-poster-landscape {
+            width: 78px;
+            height: 44px;
         }
 
         .activity-delete {
@@ -91,41 +126,37 @@
                     {% set is_aiosports = activity.content_id and activity.content_id.startswith('nuvio_sport_') %}
                     <div class="list-group-item activity-item">
                         <a href="{{ url_for('content.content_detail', activity_id=activity.id) }}" class="activity-link text-decoration-none text-body">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3 flex-shrink-0">
-                                    <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
-                                         data-content-id="{{ activity.content_id }}"
-                                         data-aiosports="{{ '1' if is_aiosports else '0' }}"
-                                         data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
-                                        <img class="poster-image img-thumbnail" alt="">
-                                        <div class="poster-fallback">
-                                            <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
-                                        </div>
+                            <div class="activity-media">
+                                <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
+                                     data-content-id="{{ activity.content_id }}"
+                                     data-aiosports="{{ '1' if is_aiosports else '0' }}"
+                                     data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
+                                    <img class="poster-image img-thumbnail" alt="">
+                                    <div class="poster-fallback">
+                                        <i class="fa {% if is_aiosports %}fa-tv{% else %}fa-film{% endif %}"></i>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="flex-grow-1 min-w-0">
-                                    <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
-                                        <h5 class="mb-1 me-2 activity-title">
-                                            {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
-                                                {{ metadata_map[activity.id].display_title }}
-                                            {% else %}
-                                                {{ activity.content_id }}
-                                            {% endif %}
-                                        </h5>
-                                        <small class="text-muted text-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
-                                    </div>
-                                    <div class="mt-2">
-                                        <p class="mb-0 me-2">
-                                            <span class="badge {% if activity.content_type == 'movie' %}bg-info{% else %}bg-warning{% endif %}">
-                                                {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
-                                            </span>
-                                            {% if activity.video_hash %}
-                                            <span class="badge bg-secondary">Hash: {{ activity.video_hash }}</span>
-                                            {% endif %}
-                                            <span class="badge bg-dark">ID: {{ activity.content_id }}</span>
-                                        </p>
-                                    </div>
+                            <div class="activity-content">
+                                <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
+                                    <h5 class="mb-1 me-2 activity-title">
+                                        {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
+                                            {{ metadata_map[activity.id].display_title }}
+                                        {% else %}
+                                            {{ activity.content_id }}
+                                        {% endif %}
+                                    </h5>
+                                    <small class="text-muted text-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </div>
+                                <div class="activity-meta">
+                                    <span class="badge {% if activity.content_type == 'movie' %}bg-info{% else %}bg-warning{% endif %}">
+                                        {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
+                                    </span>
+                                    {% if activity.video_hash %}
+                                    <span class="badge bg-secondary">Hash: {{ activity.video_hash }}</span>
+                                    {% endif %}
+                                    <span class="activity-id">ID: {{ activity.content_id }}</span>
                                 </div>
                             </div>
                         </a>
