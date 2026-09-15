@@ -63,40 +63,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ css_version }}">
-    <style>
-        /* Dashboard metadata contrast overrides. */
-        .activity-id {
-            display: inline-block !important;
-            max-width: 100% !important;
-            padding: 0.3rem 0.48rem !important;
-            border-radius: 0.4rem !important;
-            line-height: 1.1 !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            background: #000 !important;
-            color: #fff !important;
-        }
-
-        [data-bs-theme="dark"] .activity-id {
-            background: #fff !important;
-            color: #000 !important;
-        }
-
-        [data-bs-theme="dark"] .activity-title {
-            color: #fff !important;
-        }
-
-        .card:has(.activity-item) > .card-header .badge.bg-primary {
-            background: #fff !important;
-            color: #000 !important;
-        }
-
-        [data-bs-theme="light"] .card:has(.activity-item) > .card-header .badge.bg-primary {
-            background: #000 !important;
-            color: #fff !important;
-        }
-    </style>
     {% block extra_css %}{% endblock %}
     <!-- Bootstrap-select CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/css/bootstrap-select.min.css">

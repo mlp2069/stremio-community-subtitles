@@ -1,58 +1,31 @@
 # Docker Deployment Guide
 
-## Existing SCS server (mlp2069 image)
+## Published image
 
-The image is published to `ghcr.io/mlp2069/stremio-community-subtitles:latest`
-on pushes to `main`, with an additional `sha-<short-commit>` tag for pinning or
-rollback. It supports Linux amd64 and arm64. Runtime settings and secrets stay
-in your server's Compose environment; they are not baked into the image.
+The image is published to `ghcr.io/mlp2069/stremio-community-subtitles` for
+Linux amd64 and arm64. Two tags are pushed on every commit to `main`:
 
-For the existing SQLite server, replace the `scs` service with the following
-in your current Compose file. Keep your existing `default-logging` anchor:
+| Tag | Use |
+| --- | --- |
+| `latest` | Tracks `main`, so it moves on every push. Convenient, but you get whatever landed most recently. |
+| `sha-<short-commit>` | Pins one exact build. Use this if you want to choose when to move, and to roll back. |
 
-```yaml
-  scs:
-    image: ghcr.io/mlp2069/stremio-community-subtitles:latest
-    container_name: scs
-    restart: unless-stopped
-    entrypoint: ["/app/data/entrypoint.sh"]
-    command: ["hypercorn", "run:app", "--bind", "0.0.0.0:4949", "--workers", "4", "--backlog", "256"]
-    ports:
-      - "127.0.0.1:4950:4949"
-    environment:
-      - TZ=${TZ}
-      - SECRET_KEY=${SECRET_KEY}
-      - FLASK_ENV=production
-      - DATABASE_URL=sqlite:////app/data/local.db
-      - DISABLE_EMAIL_VERIFICATION=true
-      - OPENSUBTITLES_API_KEY=${OPENSUBTITLES_API_KEY}
-      - TMDB_API_KEY=${TMDB_API_KEY}
-      - MAL_CLIENT_ID=${MAL_CLIENT_ID_SCS}
-      - PREFERRED_URL_SCHEME=https
-      - MAX_UPLOAD_SIZE_MB=15
-    volumes:
-      - /data/scs/data:/app/data
-      - /data/scs/subtitles:/app/subtitles
-      - /data/scs/logs:/app/logs
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4949/')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging: *default-logging
-```
+Runtime settings and secrets stay in your Compose environment; nothing is baked
+into the image.
 
-After the image build succeeds, run these from your server's Compose directory:
+To update a running deployment:
 
 ```bash
-docker compose pull scs
-docker compose up -d --no-deps scs
-docker compose ps scs
+docker compose pull
+docker compose up -d
 ```
 
-The mounted `/data/scs/data/entrypoint.sh` and existing SQLite database remain
-in use. Enable TheSubtitleDB in Account Settings after updating.
+> **Do not override the image's `entrypoint`.** It is `/app/entrypoint.sh`,
+> which seeds and updates the bundled anime-lists into your data volume before
+> starting the server. Pointing `entrypoint:` at a script inside a mounted
+> volume replaces that logic, and anime (Kitsu/MAL) title matching then runs
+> against stale or missing lists. Override `command:` instead if you need to
+> change Hypercorn's arguments.
 
 ## Quick Start (Pre-built Image)
 

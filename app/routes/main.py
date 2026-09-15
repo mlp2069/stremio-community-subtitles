@@ -87,7 +87,8 @@ async def dashboard():
     return await render_template('main/dashboard.html',
                            activities=recent_activity,
                            metadata_map=activity_metadata,
-                           max_activities=max_activities_to_display)
+                           max_activities=max_activities_to_display,
+                           aiosports_public_url=current_app.config.get('AIOSPORTS_PUBLIC_URL', ''))
 
 
 @main_bp.route('/aiosports/art')

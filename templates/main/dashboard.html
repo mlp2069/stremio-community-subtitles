@@ -80,13 +80,6 @@
         margin-top: 0.4rem;
     }
 
-    .activity-id {
-        font-weight: 600;
-        font-size: 0.9rem;
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-
     .activity-actions {
         display: flex;
         flex-direction: column;
@@ -193,12 +186,6 @@
 
         .activity-meta .badge {
             font-size: 0.76rem;
-        }
-
-        /* Only font-size survives here: the pill's box, clipping and colours are
-           set with !important in base.html and style.css. */
-        .activity-id {
-            font-size: 0.8rem;
         }
 
         .activity-status-stack .badge {
@@ -340,7 +327,11 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const aiosportsBase = `${window.location.protocol}//${window.location.hostname}:7000`;
+        // Browser-side fallback target, used only when the server resolved no
+        // artwork. The same-host:7000 guess is right for a local deployment and
+        // wrong for a reverse-proxied one, so AIOSPORTS_PUBLIC_URL overrides it.
+        const aiosportsBase = {{ (aiosports_public_url or '')|tojson }}
+            || `${window.location.protocol}//${window.location.hostname}:7000`;
 
         function formatBrowserTime(utcString) {
             const date = new Date(utcString);

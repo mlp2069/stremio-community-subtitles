@@ -396,13 +396,54 @@ body {
     }
 }
 
-/* Activity ID pill should hug its content */
+/* Dashboard activity rows.
+   These used to be split across base.html's global <style>, this file and
+   dashboard.html's inline block, all three fighting with !important. One
+   definition each, here. !important is kept only where it beats a Bootstrap
+   utility that is itself !important (.bg-primary). */
 .activity-id {
-    flex: 0 1 auto !important;
-    flex-basis: auto !important;
-    width: fit-content !important;
-    max-width: 100% !important;
-    align-self: flex-start !important;
+    display: inline-block;
+    flex: 0 1 auto;
+    align-self: flex-start;
+    width: fit-content;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.3rem 0.48rem;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #000;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .activity-id {
+    background: #fff;
+    color: #000;
+}
+
+[data-bs-theme="dark"] .activity-title {
+    color: #fff;
+}
+
+/* Bootstrap's .bg-primary utility is itself !important, so matching it here. */
+.card:has(.activity-item) > .card-header .badge.bg-primary {
+    background: #fff !important;
+    color: #000;
+}
+
+[data-bs-theme="light"] .card:has(.activity-item) > .card-header .badge.bg-primary {
+    background: #000 !important;
+    color: #fff;
+}
+
+@media (max-width: 575.98px) {
+    .activity-id {
+        font-size: 0.8rem;
+    }
 }
 
 /* Keep content-detail pages compact and usable on phones. */

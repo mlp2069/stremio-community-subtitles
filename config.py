@@ -84,6 +84,10 @@ class Config:
     # AIOSports addon base URL, e.g. http://aiosports:7000. Must be reachable
     # from this process, not from the viewer's browser. Empty disables lookups.
     AIOSPORTS_ADDON_URL = os.environ.get('AIOSPORTS_ADDON_URL', '')
+    # Browser-reachable AIOSports URL, used only by the dashboard's client-side
+    # fallback when the server resolved no artwork. Empty keeps the legacy
+    # same-host:7000 guess, which is right only for a local deployment.
+    AIOSPORTS_PUBLIC_URL = os.environ.get('AIOSPORTS_PUBLIC_URL', '')
     
     # Better Stack (Logtail) configuration
     USE_BETTERSTACK = os.environ.get('USE_BETTERSTACK', 'false').lower() in ['true', '1', 't', 'y', 'yes']
