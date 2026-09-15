@@ -17,6 +17,7 @@
         gap: 12px;
         align-items: center;
         min-width: 0;
+        margin-left: -4px;
     }
 
     .activity-media {
@@ -79,6 +80,7 @@
         justify-content: space-between;
         gap: 0.75rem;
         min-width: 0;
+        margin-right: -4px;
     }
 
     .activity-status-stack {
@@ -99,13 +101,28 @@
         font-size: 0.75rem;
     }
 
-    .badge-activity-type {
-        background: #fd7e14;
+    .badge-activity-series {
+        background: #198754;
+        color: #fff;
+    }
+
+    .badge-activity-movie {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .badge-activity-channel {
+        background: #6f42c1;
+        color: #fff;
+    }
+
+    .badge-activity-other {
+        background: #6c757d;
         color: #fff;
     }
 
     .badge-activity-date {
-        background: #198754;
+        background: #fd7e14;
         color: #fff;
     }
 
@@ -245,7 +262,7 @@
 
                         <div class="activity-actions">
                             <div class="activity-status-stack">
-                                <span class="badge badge-activity-type">
+                                <span class="badge {% if is_aiosports %}badge-activity-channel{% elif activity.content_type == 'movie' %}badge-activity-movie{% elif activity.content_type == 'series' %}badge-activity-series{% else %}badge-activity-other{% endif %}">
                                     {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
                                 </span>
                                 <span class="badge badge-activity-date activity-date-badge"
