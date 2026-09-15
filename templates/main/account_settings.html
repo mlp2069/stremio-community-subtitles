@@ -70,6 +70,18 @@
                                {% if user.prioritize_ass_subtitles %}checked{% endif %}>
                     </div>
                 </div>
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                    <div style="max-width: 75%;">
+                        <strong>{{ _('Prioritize .srt subtitles') }}</strong>
+                        <div class="form-text small">{{ _('When enabled, .srt subtitles appear first so Stremio can use its default subtitle styling') }}</div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="prioritize_srt_subtitles"
+                               data-srt-url="{{ url_for('srt_preference.update_srt_preference') }}"
+                               style="width: 3rem; height: 1.5rem; cursor: pointer;"
+                               {% if (user.provider_credentials or {}).get('_preferences', {}).get('prioritize_srt_subtitles', False) %}checked{% endif %}>
+                    </div>
+                </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div style="max-width: 75%;">
                         <strong>{{ _('Prioritize forced subtitles') }}</strong>
@@ -230,6 +242,31 @@
 <script src="{{ url_for('static', filename='js/utils.js') }}?v={{ js_versions['utils.js'] }}"></script>
 <script src="{{ url_for('static', filename='js/account_settings.js') }}?v={{ js_versions['account_settings.js'] }}"></script>
 <script>
+const srtToggle = document.getElementById('prioritize_srt_subtitles');
+if (srtToggle) {
+    srtToggle.addEventListener('change', async function() {
+        const previous = !this.checked;
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+        try {
+            const response = await fetch(this.dataset.srtUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken || ''
+                },
+                body: JSON.stringify({ enabled: this.checked })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Failed to update setting');
+            if (typeof showToast === 'function') showToast('Setting updated successfully', 'success');
+        } catch (error) {
+            this.checked = previous;
+            if (typeof showToast === 'function') showToast('Failed to update setting', 'danger');
+            console.error(error);
+        }
+    });
+}
+
 // Enable delete button only when username matches
 document.getElementById('confirmUsername').addEventListener('input', function(e) {
     const confirmBtn = document.getElementById('confirmDeleteBtn');
