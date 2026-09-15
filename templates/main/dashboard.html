@@ -56,6 +56,17 @@
         aspect-ratio: 16 / 9;
     }
 
+    /* Channel logos and fixture art arrive as wide sheets. Letterbox them on a
+       dark tile instead of cropping the middle out, and drop the img-thumbnail
+       padding and border that would eat a sixth of an 84px-wide box and stack a
+       second border over the fallback's own. */
+    .activity-poster-landscape .poster-image {
+        object-fit: contain;
+        padding: 0;
+        border: 0;
+        background-color: #000;
+    }
+
     .activity-title {
         line-height: 1.24;
         margin-bottom: 0.25rem;
@@ -233,7 +244,7 @@
                 <div class="list-group list-group-flush">
                     {% for activity in activities %}
                     {% set is_aiosports = activity.content_id and activity.content_id.startswith('nuvio_sport_') %}
-                    {% set is_aiosports_channel = is_aiosports and '_ts_ch_' in activity.content_id %}
+                    {% set is_aiosports_channel = is_aiosports and activity.content_id|aiosports_is_channel %}
                     <div class="list-group-item activity-item">
                         <a {% if not is_aiosports %}href="{{ url_for('content.content_detail', activity_id=activity.id) }}"{% else %}aria-disabled="true"{% endif %} class="activity-main text-decoration-none text-body">
                             <div class="activity-media">
@@ -252,10 +263,8 @@
                                 <h5 class="activity-title">
                                     {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
                                         {{ metadata_map[activity.id].display_title }}
-                                    {% elif is_aiosports_channel %}
-                                        {{ activity.content_id|replace('nuvio_sport_ts_ch_', '')|replace('-', ' ')|replace('_', ' ')|title }}
                                     {% elif is_aiosports %}
-                                        {{ activity.content_id|replace('nuvio_sport_', '')|replace('-', ' ')|replace('_', ' ')|title }}
+                                        {{ activity.content_id|aiosports_title }}
                                     {% else %}
                                         {{ activity.content_id }}
                                     {% endif %}
@@ -276,7 +285,7 @@
                                     {{ activity.timestamp.strftime('%-m/%-d/%y %-I:%M %p') }}
                                 </span>
                                 <span class="badge {% if is_aiosports %}badge-activity-channel{% elif activity.content_type == 'movie' %}badge-activity-movie{% elif activity.content_type == 'series' %}badge-activity-series{% else %}badge-activity-other{% endif %}">
-                                    {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
+                                    {% if is_aiosports_channel %}{{ _('Channel') }}{% elif is_aiosports %}{{ _('Live Sport') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
                                 </span>
                             </div>
 
@@ -382,6 +391,9 @@
             const fallback = wrapper.querySelector('.poster-fallback');
             if (!posterUrl) {
                 img.style.display = 'none';
+                // Settle the placeholder: without this it keeps pulsing and a
+                // row with no artwork is indistinguishable from one still loading.
+                wrapper.classList.add('poster-empty');
                 return;
             }
             img.src = posterUrl;
@@ -392,7 +404,24 @@
             };
             img.onerror = function() {
                 this.style.display = 'none';
+                wrapper.classList.add('poster-empty');
             };
+        }
+
+        function applyAiosportsMeta(wrapper, meta) {
+            if (!meta) {
+                showPoster(wrapper, null);
+                return;
+            }
+            showPoster(wrapper, meta.poster || meta.background || meta.logo || null);
+            const title = wrapper.closest('.list-group-item').querySelector('.activity-title');
+            if (title && meta.name) {
+                title.textContent = meta.name
+                    .replace(/^📺\s*/, '')
+                    .replace(/^🔴\s*LIVE:\s*/i, '')
+                    .replace(/^⏱️?\s*/, '')
+                    .trim();
+            }
         }
 
         document.querySelectorAll('.poster-wrapper').forEach(function(wrapper) {
@@ -409,28 +438,37 @@
                 return;
             }
 
-            fetch(`${aiosportsBase}/meta/tv/${encodeURIComponent(contentId)}.json`, {
-                headers: { 'Accept': 'application/json' }
-            })
+            // Last resort, only when the server resolved nothing: this browser
+            // may reach the addon even where the server cannot. Hits and misses
+            // are both remembered so a dead addon is contacted once per row.
+            const cacheKey = 'aiosports:' + contentId;
+            let cached = null;
+            try { cached = sessionStorage.getItem(cacheKey); } catch (e) { /* private mode */ }
+            if (cached !== null) {
+                applyAiosportsMeta(wrapper, cached === '' ? null : JSON.parse(cached));
+                return;
+            }
+
+            const options = { headers: { 'Accept': 'application/json' } };
+            if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+                options.signal = AbortSignal.timeout(4000);
+            }
+
+            fetch(`${aiosportsBase}/meta/tv/${encodeURIComponent(contentId)}.json`, options)
                 .then(function(response) {
                     if (!response.ok) throw new Error(`AIOSports metadata ${response.status}`);
                     return response.json();
                 })
                 .then(function(payload) {
-                    const meta = payload && payload.meta;
-                    if (!meta) return;
-                    showPoster(wrapper, meta.poster || meta.background || null);
-                    const title = wrapper.closest('.list-group-item').querySelector('.activity-title');
-                    if (title && meta.name) {
-                        title.textContent = meta.name
-                            .replace(/^📺\s*/, '')
-                            .replace(/^🔴\s*LIVE:\s*/i, '')
-                            .replace(/^⏱️\s*/, '')
-                            .trim();
-                    }
+                    // The addon answers 200 with {"meta": null} for a fixture it
+                    // no longer carries. That is a miss, not a no-op.
+                    const meta = (payload && payload.meta) || null;
+                    try { sessionStorage.setItem(cacheKey, meta ? JSON.stringify(meta) : ''); } catch (e) {}
+                    applyAiosportsMeta(wrapper, meta);
                 })
                 .catch(function() {
-                    showPoster(wrapper, null);
+                    try { sessionStorage.setItem(cacheKey, ''); } catch (e) {}
+                    applyAiosportsMeta(wrapper, null);
                 });
         });
     });

@@ -1,8 +1,9 @@
 import asyncio
 import datetime
+from urllib.parse import urlsplit
 
 from quart_babel import gettext as _
-from quart import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from quart import Blueprint, Response, abort, render_template, redirect, url_for, flash, request, current_app
 from quart_auth import login_required, current_user, logout_user, Unauthorized
 from markupsafe import Markup
 from sqlalchemy.orm import joinedload
@@ -86,6 +87,54 @@ async def dashboard():
                            activities=recent_activity,
                            metadata_map=activity_metadata,
                            max_activities=max_activities_to_display)
+
+
+@main_bp.route('/aiosports/art')
+@login_required
+async def aiosports_artwork():
+    """Same-origin proxy for AIOSports artwork.
+
+    The addon builds its meta poster URLs from the host that asked for the meta,
+    so resolving server-side yields artwork URLs only this process can reach —
+    a LAN address off a phone, or plain HTTP behind an HTTPS dashboard. Serving
+    the bytes ourselves is what makes the poster actually appear.
+
+    Only the path and query travel in ``p``; the host is always the configured
+    addon, so this can never be pointed at another origin.
+    """
+    import aiohttp
+
+    from ..lib.aiosports import addon_base_url
+
+    base = addon_base_url()
+    path_and_query = request.args.get('p', '')
+    if not base or not path_and_query.startswith('/') or path_and_query.startswith('//'):
+        abort(404)
+    if not urlsplit(path_and_query).path.startswith(('/img', '/logo', '/marks', '/placeholder')):
+        abort(404)
+
+    max_bytes = 5 * 1024 * 1024
+    try:
+        timeout = aiohttp.ClientTimeout(total=5, connect=1.0, sock_connect=1.0)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(base + path_and_query) as upstream:
+                content_type = upstream.headers.get('Content-Type', '')
+                if (upstream.status != 200
+                        or not content_type.startswith('image/')
+                        or (upstream.content_length or 0) > max_bytes):
+                    abort(404)
+                # Read past the cap so an unset or lying Content-Length can't
+                # stream an unbounded body into memory.
+                body = await upstream.content.read(max_bytes + 1)
+                if len(body) > max_bytes:
+                    abort(404)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        current_app.logger.debug(f"AIOSports artwork fetch failed for {path_and_query}: {e}")
+        abort(404)
+
+    response = Response(body, mimetype=content_type)
+    response.headers['Cache-Control'] = 'private, max-age=86400'
+    return response
 
 
 @main_bp.route('/configure')
