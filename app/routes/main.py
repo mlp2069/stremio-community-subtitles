@@ -1,6 +1,7 @@
 import asyncio
 import datetime
-from urllib.parse import urlsplit
+import posixpath
+from urllib.parse import urlsplit, urlunsplit
 
 from quart_babel import gettext as _
 from quart import Blueprint, Response, abort, render_template, redirect, url_for, flash, request, current_app
@@ -110,17 +111,29 @@ async def aiosports_artwork():
     path_and_query = request.args.get('p', '')
     if not base or not path_and_query.startswith('/') or path_and_query.startswith('//'):
         abort(404)
-    if not urlsplit(path_and_query).path.startswith(('/img', '/logo', '/marks', '/placeholder')):
+
+    # Normalise before validating: '/img/../../status' satisfies a literal
+    # prefix check but the HTTP client canonicalises it to '/status', which
+    # would turn this into a reader for any endpoint on the addon.
+    parts = urlsplit(path_and_query)
+    path = posixpath.normpath(parts.path)
+    allowed = ('/img', '/logo', '/marks', '/placeholder')
+    if path not in allowed and not path.startswith(tuple(p + '/' for p in allowed)):
         abort(404)
+    target = base + urlunsplit(('', '', path, parts.query, ''))
 
     max_bytes = 5 * 1024 * 1024
     try:
         timeout = aiohttp.ClientTimeout(total=5, connect=1.0, sock_connect=1.0)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(base + path_and_query) as upstream:
+            async with session.get(target) as upstream:
+                # Inert raster types only. SVG would execute script if a viewer
+                # opened the URL directly, and this is our own origin.
                 content_type = upstream.headers.get('Content-Type', '')
+                mime = content_type.split(';')[0].strip().lower()
                 if (upstream.status != 200
-                        or not content_type.startswith('image/')
+                        or mime not in ('image/png', 'image/jpeg', 'image/gif',
+                                        'image/webp', 'image/avif')
                         or (upstream.content_length or 0) > max_bytes):
                     abort(404)
                 # Read past the cap so an unset or lying Content-Length can't
@@ -132,8 +145,9 @@ async def aiosports_artwork():
         current_app.logger.debug(f"AIOSports artwork fetch failed for {path_and_query}: {e}")
         abort(404)
 
-    response = Response(body, mimetype=content_type)
+    response = Response(body, mimetype=mime)
     response.headers['Cache-Control'] = 'private, max-age=86400'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
 
 

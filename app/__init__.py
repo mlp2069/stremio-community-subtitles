@@ -1,4 +1,5 @@
 """Async Quart application factory"""
+import datetime
 import os
 import logging
 from quart import Quart, request
@@ -135,6 +136,10 @@ def create_app():
     from .lib.aiosports import humanize_aiosports_id, is_aiosports_channel_id
     app.jinja_env.filters['aiosports_title'] = humanize_aiosports_id
     app.jinja_env.filters['aiosports_is_channel'] = is_aiosports_channel_id
+
+    @app.context_processor
+    def inject_current_year():
+        return {'current_year': datetime.datetime.utcnow().year}
 
     @app.context_processor
     def inject_providers():

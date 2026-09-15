@@ -1,6 +1,6 @@
 import copy
 
-from quart import Blueprint, request
+from quart import Blueprint, current_app, request
 from quart_auth import current_user, login_required
 from sqlalchemy import select
 from pysubs2 import SSAFile
@@ -69,7 +69,15 @@ async def prioritize_srt_entries(response):
     if not parts:
         return response
 
-    user = await User.get_by_manifest_token(parts[0])
+    # This runs on every Stremio subtitle response, so a DB hiccup here must not
+    # turn a successful list into a 500 -- an exception raised in an
+    # after_app_request hook replaces the response that was about to be sent.
+    try:
+        user = await User.get_by_manifest_token(parts[0])
+    except Exception as e:
+        current_app.logger.warning(f"SRT preference lookup failed, serving list unchanged: {e}")
+        return response
+
     if not user or not _prefers_srt(user):
         return response
 
