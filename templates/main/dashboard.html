@@ -249,9 +249,8 @@
                                     {% if is_aiosports %}{{ _('Channel') }}{% elif activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
                                 </span>
                                 <span class="badge badge-activity-date activity-date-badge"
-                                      data-utc="{{ activity.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}"
-                                      title="Eastern Time">
-                                    {{ activity.timestamp.strftime('%-m/%-d/%y %-I:%M %p') }} (ET)
+                                      data-utc="{{ activity.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                    {{ activity.timestamp.strftime('%-m/%-d/%y %-I:%M %p') }}
                                 </span>
                             </div>
 
@@ -313,12 +312,11 @@
     document.addEventListener('DOMContentLoaded', function() {
         const aiosportsBase = `${window.location.protocol}//${window.location.hostname}:7000`;
 
-        function formatEasternTime(utcString) {
+        function formatBrowserTime(utcString) {
             const date = new Date(utcString);
             if (Number.isNaN(date.getTime())) return null;
 
             const parts = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'America/New_York',
                 month: 'numeric',
                 day: 'numeric',
                 year: '2-digit',
@@ -332,11 +330,11 @@
                 return part ? part.value : '';
             };
 
-            return `${getPart('month')}/${getPart('day')}/${getPart('year')} ${getPart('hour')}:${getPart('minute')} ${getPart('dayPeriod')} (ET)`;
+            return `${getPart('month')}/${getPart('day')}/${getPart('year')} ${getPart('hour')}:${getPart('minute')} ${getPart('dayPeriod')}`;
         }
 
         document.querySelectorAll('.activity-date-badge').forEach(function(badge) {
-            const formatted = formatEasternTime(badge.dataset.utc);
+            const formatted = formatBrowserTime(badge.dataset.utc);
             if (formatted) badge.textContent = formatted;
         });
 
