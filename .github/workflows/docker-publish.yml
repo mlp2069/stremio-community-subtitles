@@ -1,5 +1,6 @@
 name: Build and Publish Docker Image
 
+# Rebuild marker: 2026-09-15
 on:
   push:
     branches:
