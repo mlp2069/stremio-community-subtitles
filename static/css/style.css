@@ -298,6 +298,21 @@ body {
     transform: scale(0.95);
 }
 
+/* Bootstrap 5.3 keeps .bg-info and .bg-light light in both themes, but
+   .list-group-item takes its colour from --bs-body-color, which the dark theme
+   sets near-white. That left the active-subtitle row at 1.66:1 and the language
+   headers at 1.12:1 -- unreadable. Pin a dark foreground where the panel stays
+   light; these reach 9.3:1 and 17.3:1. */
+[data-bs-theme="dark"] .list-group-item.bg-info,
+[data-bs-theme="dark"] .list-group-item.bg-light {
+    color: #10161d;
+}
+
+[data-bs-theme="dark"] .list-group-item.bg-info .text-muted,
+[data-bs-theme="dark"] .list-group-item.bg-light .text-muted {
+    color: #2f3945 !important;
+}
+
 .list-group-item.bg-info {
     transition: filter 0.3s ease-in-out;
     filter: brightness(1);
