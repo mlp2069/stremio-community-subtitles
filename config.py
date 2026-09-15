@@ -81,6 +81,9 @@ class Config:
     OPENSUBTITLES_API_KEY = os.environ.get('OPENSUBTITLES_API_KEY')
     KITSU_ADDON_URL = os.environ.get('KITSU_ADDON_URL', 'https://anime-kitsu.strem.fun')
     MAL_CLIENT_ID = os.environ.get('MAL_CLIENT_ID')
+    # AIOSports addon base URL, e.g. http://aiosports:7000. Must be reachable
+    # from this process, not from the viewer's browser. Empty disables lookups.
+    AIOSPORTS_ADDON_URL = os.environ.get('AIOSPORTS_ADDON_URL', '')
     
     # Better Stack (Logtail) configuration
     USE_BETTERSTACK = os.environ.get('USE_BETTERSTACK', 'false').lower() in ['true', '1', 't', 'y', 'yes']

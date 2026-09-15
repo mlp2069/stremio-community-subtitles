@@ -7,6 +7,7 @@ from pyMALv2.auth import Authorization
 from pyMALv2.services.anime_service.anime_service import AnimeService
 
 from ..extensions import cache
+from .aiosports import get_aiosports_metadata, is_aiosports_id
 
 tmdb_api = themoviedb.tmdb.TMDb()
 
@@ -301,13 +302,8 @@ async def _get_mal_metadata(content_id):
 
 
 @cache.memoize(timeout=86400)
-async def get_metadata(content_id, content_type=None):
-    """
-    Public dispatcher function to fetch metadata from various sources.
-    :param content_id: The ID of the content (e.g., 'tt12345', 'kitsu:123', 'kitsu:123:1').
-    :param content_type: Type of content, primarily for TMDB ('movie', 'series').
-    :return: Metadata dictionary or None.
-    """
+async def _get_cached_metadata(content_id, content_type=None):
+    """Dispatcher for sources whose metadata is safe to cache for a day."""
     if content_id and content_id.startswith('tt'):
         if not content_type:
             current_app.logger.warning(f"content_type not provided for TMDB ID {content_id}. Cannot determine if movie or series.")
@@ -319,5 +315,19 @@ async def get_metadata(content_id, content_type=None):
     elif content_id and content_id.startswith('mal:'):
         return await _get_mal_metadata(content_id)
     else:
-        current_app.logger.info(f"Unsupported content_id format: {content_id}")
+        current_app.logger.debug(f"Unsupported content_id format: {content_id}")
         return None
+
+
+async def get_metadata(content_id, content_type=None):
+    """
+    Public dispatcher function to fetch metadata from various sources.
+    :param content_id: The ID of the content (e.g., 'tt12345', 'kitsu:123', 'nuvio_sport_ts_ch_tbs').
+    :param content_type: Type of content, primarily for TMDB ('movie', 'series').
+    :return: Metadata dictionary or None.
+    """
+    if is_aiosports_id(content_id):
+        # Live sports metadata goes stale within minutes, so it carries its own
+        # short TTLs rather than the day-long memoize above.
+        return await get_aiosports_metadata(content_id)
+    return await _get_cached_metadata(content_id, content_type)

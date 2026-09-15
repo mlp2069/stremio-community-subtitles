@@ -132,6 +132,9 @@ def create_app():
     # Register custom Jinja filters
     from .routes.utils import sanitize_filename
     app.jinja_env.filters['sanitize_filename'] = lambda s: sanitize_filename(s) or ''
+    from .lib.aiosports import humanize_aiosports_id, is_aiosports_channel_id
+    app.jinja_env.filters['aiosports_title'] = humanize_aiosports_id
+    app.jinja_env.filters['aiosports_is_channel'] = is_aiosports_channel_id
 
     @app.context_processor
     def inject_providers():

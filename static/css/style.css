@@ -236,6 +236,13 @@ body {
     opacity: 0;
 }
 
+/* Artwork was looked for and there is none. Stop the pulse so the placeholder
+   reads as "nothing to show" rather than "still loading". */
+.poster-wrapper.poster-empty .poster-fallback i {
+    animation: none;
+    opacity: 0.55;
+}
+
 @keyframes pulse {
     0% { opacity: 0.6; }
     50% { opacity: 1; }
