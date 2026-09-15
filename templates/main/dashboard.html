@@ -36,6 +36,8 @@
 
                                     <div class="me-3 flex-shrink-0">
                                         <div class="poster-wrapper activity-poster{% if is_aiosports %} activity-poster-landscape{% endif %}"
+                                             data-content-id="{{ activity.content_id }}"
+                                             data-aiosports="{{ '1' if is_aiosports else '0' }}"
                                              data-poster="{% if activity.id in metadata_map and metadata_map[activity.id].poster_url %}{{ metadata_map[activity.id].poster_url }}{% endif %}">
                                             <img class="poster-image img-thumbnail" alt="">
                                             <div class="poster-fallback">
@@ -46,7 +48,7 @@
 
                                     <div class="flex-grow-1 min-w-0">
                                         <div class="d-flex flex-column flex-sm-row w-100 justify-content-between align-items-start">
-                                            <h5 class="mb-1 me-2">
+                                            <h5 class="mb-1 me-2 activity-title">
                                                 {% if activity.id in metadata_map and metadata_map[activity.id].display_title %}
                                                     {{ metadata_map[activity.id].display_title }}
                                                 {% else %}
@@ -55,9 +57,8 @@
                                             </h5>
                                             <small class="text-muted text-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
                                         </div>
-                                        <!-- New row for Badges (left) and Delete Button (right) -->
                                         <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <p class="mb-0 me-2"> <!-- Badges -->
+                                            <p class="mb-0 me-2">
                                                 <span class="badge {% if activity.content_type == 'movie' %}bg-info{% else %}bg-warning{% endif %}">
                                                     {% if activity.content_type == 'movie' %}{{ _('Movie') }}{% elif activity.content_type == 'series' %}{{ _('Series') }}{% else %}{{ activity.content_type|capitalize }}{% endif %}
                                                 </span>
@@ -76,7 +77,6 @@
                                     </div>
                                 </div>
                             </a>
-                            <!-- Original ms-2 div for delete button is removed as it's now inside the text block -->
                         </div>
                     </div>
                     {% endfor %}
@@ -126,26 +126,64 @@
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.poster-wrapper').forEach(function(wrapper) {
-        const img = wrapper.querySelector('.poster-image');
-        const fallback = wrapper.querySelector('.poster-fallback');
-        const posterUrl = wrapper.dataset.poster;
+        const aiosportsBase = `${window.location.protocol}//${window.location.hostname}:7000`;
 
-        if (posterUrl) {
+        function showPoster(wrapper, posterUrl) {
+            const img = wrapper.querySelector('.poster-image');
+            const fallback = wrapper.querySelector('.poster-fallback');
+            if (!posterUrl) {
+                img.style.display = 'none';
+                return;
+            }
             img.src = posterUrl;
-
             img.onload = function() {
+                this.style.display = '';
                 this.classList.add('loaded');
                 fallback.classList.add('hidden');
             };
-
             img.onerror = function() {
                 this.style.display = 'none';
             };
-        } else {
-            img.style.display = 'none';
         }
+
+        document.querySelectorAll('.poster-wrapper').forEach(function(wrapper) {
+            const posterUrl = wrapper.dataset.poster;
+            const contentId = wrapper.dataset.contentId;
+
+            if (posterUrl) {
+                showPoster(wrapper, posterUrl);
+                return;
+            }
+
+            if (wrapper.dataset.aiosports !== '1' || !contentId) {
+                showPoster(wrapper, null);
+                return;
+            }
+
+            fetch(`${aiosportsBase}/meta/tv/${encodeURIComponent(contentId)}.json`, {
+                headers: { 'Accept': 'application/json' }
+            })
+                .then(function(response) {
+                    if (!response.ok) throw new Error(`AIOSports metadata ${response.status}`);
+                    return response.json();
+                })
+                .then(function(payload) {
+                    const meta = payload && payload.meta;
+                    if (!meta) return;
+                    showPoster(wrapper, meta.poster || meta.background || null);
+                    const title = wrapper.closest('.list-group-item').querySelector('.activity-title');
+                    if (title && meta.name) {
+                        title.textContent = meta.name
+                            .replace(/^📺\s*/, '')
+                            .replace(/^🔴\s*LIVE:\s*/i, '')
+                            .replace(/^⏱️\s*/, '')
+                            .trim();
+                    }
+                })
+                .catch(function() {
+                    showPoster(wrapper, null);
+                });
+        });
     });
-});
 </script>
 {% endblock %}
