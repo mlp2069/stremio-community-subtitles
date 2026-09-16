@@ -54,6 +54,11 @@ async def dashboard():
         result = await session.execute(
             select(UserActivity)
             .filter_by(user_id=user_id)
+            # Films and episodes only. The writer already declines live sport,
+            # but rows recorded before it did are still in the table and would
+            # sit here until they aged out of the window. Filtered before the
+            # limit, so they do not take a slot from a film on the way out.
+            .filter(~UserActivity.content_id.like('nuvio_sport_%'))
             .order_by(UserActivity.timestamp.desc())
             .limit(current_app.config.get('MAX_USER_ACTIVITIES', 15))
         )

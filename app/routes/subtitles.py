@@ -28,7 +28,7 @@ except ImportError:
     CLOUDINARY_AVAILABLE = False
 from ..extensions import async_session_maker
 from ..models import User, Subtitle, UserActivity, UserSubtitleSelection, SubtitleVote
-from ..lib.aiosports import is_aiosports_channel_id
+from ..lib.aiosports import is_aiosports_id
 from ..lib.subtitles import convert_to_vtt
 from .utils import respond_with, get_active_subtitle_details, respond_with_no_cache, NoCacheResponse, no_cache_redirect, get_vtt_content, generate_vtt_message, sanitize_filename
 from urllib.parse import parse_qs, unquote
@@ -98,13 +98,17 @@ async def addon_stream(manifest_token: str, content_type: str, content_id: str, 
 
     # Log user activity (fire-and-forget — don't block subtitle response)
     async def _log_activity():
-        # A 24/7 channel is not something anyone picks subtitles for, and the
-        # dashboard renders these rows without a link for exactly that reason.
-        # Recording them is not merely clutter: only MAX_USER_ACTIVITIES+1 rows
-        # are kept per user, and the write below deletes the oldest past that,
-        # so an evening of channel hopping quietly evicts the films and episodes
-        # the history is for.
-        if is_aiosports_channel_id(content_id):
+        # Films and episodes only. Live sport is not something anyone picks
+        # subtitles for -- neither the 24/7 channels nor the fixtures, which the
+        # dashboard renders without a link for exactly that reason. Recording it
+        # is not merely clutter: only MAX_USER_ACTIVITIES+1 rows are kept per
+        # user, and the write below deletes the oldest past that, so an evening
+        # of sport quietly evicts the films and episodes the history is for.
+        #
+        # This declined only channels until the fixtures turned out to be just
+        # as unwanted -- a live game is no more subtitled than the channel
+        # carrying it.
+        if is_aiosports_id(content_id):
             return
         async with async_session_maker() as session:
             try:
