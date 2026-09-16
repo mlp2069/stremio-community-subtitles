@@ -6,7 +6,11 @@
 <style>
     .activity-item {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 110px;
+        /* The right-hand track sizes to its widest badge rather than a fixed
+           width. Pinned at 110px it clipped the column while the badges inside
+           are nowrap, so a long date -- "9/15/26, 10:28 PM" wants 118px --
+           had its letters running outside the pill they are drawn on. */
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
         align-items: stretch;
     }
@@ -148,7 +152,7 @@
 
     @media (max-width: 575.98px) {
         .activity-item {
-            grid-template-columns: minmax(0, 1fr) 100px;
+            grid-template-columns: minmax(0, 1fr) auto;
             gap: 8px;
         }
 

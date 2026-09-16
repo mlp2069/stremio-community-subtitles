@@ -121,5 +121,36 @@ class ArtworkUrlTests(unittest.TestCase):
                 self.assertIsNone(self.rewrite(url))
 
 
+class ActivityLoggingGuardTests(unittest.TestCase):
+    """The dashboard's history is a fixed-size window, so what goes into it matters.
+
+    Only MAX_USER_ACTIVITIES+1 rows are kept per user and the writer deletes the
+    oldest past that, which means a recorded channel does not merely occupy a
+    row -- it evicts a film or an episode permanently. Channels are also the one
+    kind of row the dashboard renders without a link, because nobody picks
+    subtitles for a live feed. So the writer declines them, and these pin that
+    the predicate it declines on still answers the way the writer assumes.
+    """
+
+    def test_channel_ids_are_declined(self):
+        for content_id in ('nuvio_sport_cdn_ch_us_espn',
+                           'nuvio_sport_ts_ch_abc',
+                           'nuvio_sport_iptv_local_fox_wfld'):
+            with self.subTest(content_id=content_id):
+                self.assertTrue(is_channel(content_id))
+
+    def test_everything_else_is_still_recorded(self):
+        # Fixtures included: a live game is a thing somebody may want subtitles
+        # for, and it is not what was cluttering the list.
+        for content_id in ('tt0983514:2:12',
+                           'tt27165187',
+                           'nuvio_sport_sf_miami-marlins-vs-arizona-diamondbacks',
+                           'nuvio_sport_wf_401816956',
+                           'kitsu:123',
+                           '',
+                           None):
+            with self.subTest(content_id=content_id):
+                self.assertFalse(is_channel(content_id))
+
 if __name__ == '__main__':
     unittest.main()
