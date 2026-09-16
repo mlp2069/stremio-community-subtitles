@@ -13,6 +13,41 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from quart import current_app
 from .extensions import Base, async_session_maker
 
+class CachedUser:
+    """Lightweight read-only proxy for User data served from cache.
+    
+    Avoids SQLAlchemy instrumentation overhead entirely. Exposes the same
+    attribute interface that the Stremio API hot path reads, so code like
+    ``user.preferred_languages`` works identically on both User and CachedUser.
+    """
+    __slots__ = (
+        'id', 'username', 'email', 'preferred_languages', 'manifest_token',
+        'show_no_subtitles', 'prioritize_ass_subtitles', 'prioritize_forced_subtitles',
+        'ignore_ai_subtitles', 'provider_credentials', 'active',
+        'auth_id',
+    )
+
+    def __init__(self, d: dict):
+        self.id = d['id']
+        self.username = d['username']
+        self.email = d['email']
+        self.preferred_languages = d.get('preferred_languages', [])
+        self.manifest_token = d.get('manifest_token')
+        self.show_no_subtitles = d.get('show_no_subtitles', False)
+        self.prioritize_ass_subtitles = d.get('prioritize_ass_subtitles', False)
+        self.prioritize_forced_subtitles = d.get('prioritize_forced_subtitles', False)
+        self.ignore_ai_subtitles = d.get('ignore_ai_subtitles', False)
+        self.provider_credentials = d.get('provider_credentials', {})
+        self.active = d.get('active', True)
+        self.auth_id = self.id  # compatibility
+
+    def has_role(self, role_name):
+        return False  # cached users don't carry roles
+
+    def __repr__(self):
+        return f'<CachedUser {self.username}>'
+
+
 # Association table
 roles_users = Table(
     'roles_users',
@@ -159,9 +194,51 @@ class User(Base):
 
     @staticmethod
     async def get_by_manifest_token(token):
+        """Look up user by manifest token with L1/L2 caching (5 min TTL).
+        
+        The returned object is either a real SQLAlchemy User (on cache miss)
+        or a lightweight CachedUser proxy (on cache hit). Both expose the same
+        read-only attributes used by the Stremio API hot path.
+        """
+        from .extensions import cache as _cache
+
+        if not token:
+            return None
+
+        cache_key = f"user:token:{token}"
+        cached = await _cache.get(cache_key)
+        if cached is not None:
+            return CachedUser(cached)
+
         async with async_session_maker() as session:
             result = await session.execute(select(User).filter_by(manifest_token=token))
-            return result.scalar_one_or_none()
+            user = result.scalar_one_or_none()
+            if user:
+                await _cache.set(cache_key, user._to_cache_dict(), timeout=300)
+            return user
+
+    @staticmethod
+    async def invalidate_token_cache(token):
+        """Call after modifying user settings so Stremio API picks up changes."""
+        from .extensions import cache as _cache
+        if token:
+            await _cache.delete(f"user:token:{token}")
+
+    def _to_cache_dict(self) -> dict:
+        """Serialise fields needed by the Stremio API hot path."""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'preferred_languages': self.preferred_languages or [],
+            'manifest_token': self.manifest_token,
+            'show_no_subtitles': self.show_no_subtitles,
+            'prioritize_ass_subtitles': self.prioritize_ass_subtitles,
+            'prioritize_forced_subtitles': self.prioritize_forced_subtitles,
+            'ignore_ai_subtitles': self.ignore_ai_subtitles,
+            'provider_credentials': self.provider_credentials or {},
+            'active': self.active,
+        }
 
     def has_role(self, role_name):
         return any(role.name == role_name for role in self.roles)

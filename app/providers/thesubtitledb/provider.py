@@ -87,43 +87,78 @@ class TheSubtitleDBProvider(BaseSubtitleProvider):
                     imdb_id = (match or {}).get('title', {}).get('imdb')
                     if not imdb_id or not re.fullmatch(r'tt\d+', imdb_id):
                         return []
-                path = '/by-imdb/' + imdb_id
+                suffix = ''
                 if season is not None:
-                    path += f'/season/{season}'
+                    suffix += f'/season/{season}'
                     if episode is not None:
-                        path += f'/episode/{episode}'
-                for code, lang in requested:
-                    for offset in range(0, 300, 100):
-                        data = await self._lookup(session, path, {
-                            'lang': lang, 'format': 'srt', 'sort': 'downloads',
-                            'limit': 100, 'offset': offset,
-                        })
-                        if data is None:
-                            break
-                        page = data.get('subtitles', {})
-                        items = page.get('items', [])
-                        for item in items:
-                            subtitle_id = str(item.get('id', ''))
-                            if (not re.fullmatch(r'[1-9]\d*', subtitle_id)
-                                    or subtitle_id in seen
-                                    or item.get('language') != lang
-                                    or item.get('format') != 'srt'):
-                                continue
-                            seen.add(subtitle_id)
-                            results.append(SubtitleResult(
-                                provider_name=self.name, subtitle_id=subtitle_id,
-                                language=code, release_name=item.get('release_name'),
-                                hearing_impaired=bool(item.get('hearing_impaired')),
-                                fps=item.get('fps'), download_count=item.get('downloads'),
-                            ))
-                        if not items or offset + len(items) >= page.get('total', 0):
-                            break
+                        suffix += f'/episode/{episode}'
+
+                async def collect(path):
+                    for code, lang in requested:
+                        for offset in range(0, 300, 100):
+                            data = await self._lookup(session, path, {
+                                'lang': lang, 'format': 'srt', 'sort': 'downloads',
+                                'limit': 100, 'offset': offset,
+                            })
+                            if data is None:
+                                break
+                            page = data.get('subtitles', {})
+                            items = page.get('items', [])
+                            for item in items:
+                                subtitle_id = str(item.get('id', ''))
+                                if (not re.fullmatch(r'[1-9]\d*', subtitle_id)
+                                        or subtitle_id in seen
+                                        or item.get('language') != lang
+                                        or item.get('format') != 'srt'):
+                                    continue
+                                seen.add(subtitle_id)
+                                results.append(SubtitleResult(
+                                    provider_name=self.name, subtitle_id=subtitle_id,
+                                    language=code, release_name=item.get('release_name'),
+                                    hearing_impaired=bool(item.get('hearing_impaired')),
+                                    fps=item.get('fps'), download_count=item.get('downloads'),
+                                ))
+                            if not items or offset + len(items) >= page.get('total', 0):
+                                break
+
+                await collect('/by-imdb/' + imdb_id + suffix)
+
+                # TSDB indexes some titles under their TMDB id only, so an
+                # IMDb lookup that comes back empty is not proof there are no
+                # subtitles. Tried only when the first pass found nothing, and
+                # only when the metadata layer already knows the TMDB id, so a
+                # title it cannot place costs one dictionary read.
+                if not results:
+                    tmdb_id = await self._resolve_tmdb_id(imdb_id, season, episode, content_type)
+                    if tmdb_id:
+                        await collect(f'/by-tmdb/{tmdb_id}{suffix}')
             return results
         except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, TypeError, AttributeError) as exc:
             raise ProviderSearchError(
                 f'TheSubtitleDB search failed: {exc}', self.name,
                 status_code=getattr(exc, 'status', None),
             ) from exc
+
+    @staticmethod
+    async def _resolve_tmdb_id(imdb_id, season, episode, content_type):
+        """The TMDB id for an IMDb id, or None.
+
+        Read from the addon's own metadata cache, which already holds it for
+        any title a card has been drawn for -- the same lookup subdl makes.
+        """
+        try:
+            from ...lib.metadata import get_metadata
+            content_id = imdb_id
+            if season and episode:
+                content_id = f'{imdb_id}:{season}:{episode}'
+            elif episode:
+                content_id = f'{imdb_id}:{episode}'
+            metadata = await get_metadata(content_id, content_type)
+            if metadata and metadata.get('tmdb_id'):
+                return metadata['tmdb_id']
+        except Exception:
+            return None
+        return None
 
     async def get_download_url(self, user, subtitle_id):
         if not await self.is_authenticated(user):

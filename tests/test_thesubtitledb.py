@@ -107,6 +107,45 @@ class ProviderTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(base.ProviderSearchError):
                 await self.provider.search(self.user, imdb_id='tt1')
 
+    async def test_tmdb_fallback_when_imdb_lookup_is_empty(self):
+        # TSDB indexes some titles under their TMDB id only, so an empty IMDb
+        # answer is not proof that nobody has subtitled the film.
+        paths = []
+
+        async def lookup(session, path, params):
+            paths.append(path)
+            return bundle(items=[]) if path.startswith('/by-imdb/') else bundle()
+
+        with patch.object(self.provider, '_lookup', AsyncMock(side_effect=lookup)), \
+             patch.object(type(self.provider), '_resolve_tmdb_id',
+                          AsyncMock(return_value=496243)):
+            results = await self.provider.search(self.user, imdb_id='tt6751668',
+                                                 languages=['eng'])
+        self.assertTrue(any(p.startswith('/by-tmdb/496243') for p in paths), paths)
+        self.assertEqual(1, len(results))
+
+    async def test_tmdb_is_not_consulted_when_imdb_answers(self):
+        with patch.object(self.provider, '_lookup', AsyncMock(return_value=bundle())), \
+             patch.object(type(self.provider), '_resolve_tmdb_id', AsyncMock()) as resolve:
+            results = await self.provider.search(self.user, imdb_id='tt6751668',
+                                                 languages=['eng'])
+        self.assertEqual(1, len(results))
+        resolve.assert_not_awaited()
+
+    async def test_tmdb_fallback_keeps_season_and_episode(self):
+        paths = []
+
+        async def lookup(session, path, params):
+            paths.append(path)
+            return bundle(items=[]) if path.startswith('/by-imdb/') else bundle()
+
+        with patch.object(self.provider, '_lookup', AsyncMock(side_effect=lookup)), \
+             patch.object(type(self.provider), '_resolve_tmdb_id',
+                          AsyncMock(return_value=1396)):
+            await self.provider.search(self.user, imdb_id='tt0903747',
+                                       languages=['eng'], season=2, episode=5)
+        self.assertIn('/by-tmdb/1396/season/2/episode/5', paths)
+
     async def test_download_url_rejects_arbitrary_urls(self):
         self.assertEqual(await self.provider.get_download_url(self.user, '8819453'),
                          'https://api.thesubtitledb.org/get/8819453')

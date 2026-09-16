@@ -37,6 +37,13 @@ async def update_srt_preference():
         user.provider_credentials = credentials
         await session.commit()
 
+        # The Stremio hot path now reads this user from a five-minute cache
+        # (User.get_by_manifest_token), and that cache knows nothing about this
+        # route -- upstream added invalidation only to the settings and provider
+        # pages it ships. Without this, toggling the preference appears to do
+        # nothing for up to five minutes.
+        await User.invalidate_token_cache(user.manifest_token)
+
     return {'success': True, 'enabled': enabled}
 
 
